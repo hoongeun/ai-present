@@ -1,28 +1,94 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 
 export default function main(): void {
+	const canvas = document.getElementById('canvas');
+
+	const textureLoader = new THREE.TextureLoader();
+
 	const scene = new THREE.Scene();
-	const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+	const fov = 60;
+	const aspect = window.innerWidth / window.innerHeight;
+	const near = 0.1;
+	const far = 1000;
 
-	const renderer = new THREE.WebGLRenderer();
+	//camera
+	const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+	camera.position.z = 8;
+	camera.position.x = 0;
+	scene.add(camera);
+
+	//default renderer
+	const renderer = new THREE.WebGLRenderer({
+		canvas: canvas || undefined,
+		antialias: true,
+	});
+	renderer.autoClear = false;
 	renderer.setSize(window.innerWidth, window.innerHeight);
-	document.body.appendChild(renderer.domElement);
+	renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
+	renderer.setClearColor(0x000000, 0.0);
 
-	const geometry = new THREE.SphereGeometry();
-	const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-	const cube = new THREE.Mesh(geometry, material);
-	scene.add(cube);
+	//bloom renderer
+	const renderScene = new RenderPass(scene, camera);
+	const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+	bloomPass.threshold = 0;
+	bloomPass.strength = 2; //intensity of glow
+	bloomPass.radius = 0;
+	const bloomComposer = new EffectComposer(renderer);
+	bloomComposer.setSize(window.innerWidth, window.innerHeight);
+	bloomComposer.renderToScreen = true;
+	bloomComposer.addPass(renderScene);
+	bloomComposer.addPass(bloomPass);
 
-	camera.position.z = 5;
+	//sun object
+	const color = new THREE.Color('#13B813');
+	const geometry = new THREE.IcosahedronGeometry(1, 15);
+	const material = new THREE.MeshBasicMaterial({ color: color });
+	const sphere = new THREE.Mesh(geometry, material);
+	sphere.position.set(0, 0, 0);
+	sphere.layers.set(1);
+	scene.add(sphere);
 
-	function animate() {
+	// galaxy geometry
+	const starGeometry = new THREE.SphereGeometry(80, 64, 64);
+
+	// galaxy material
+	const starMaterial = new THREE.MeshBasicMaterial({
+		map: textureLoader.load('texture/galaxy1.png'),
+		side: THREE.BackSide,
+		transparent: true,
+	});
+
+	// galaxy mesh
+	const starMesh = new THREE.Mesh(starGeometry, starMaterial);
+	starMesh.layers.set(1);
+	scene.add(starMesh);
+
+	//ambient light
+	const ambientlight = new THREE.AmbientLight(0xffffff, 0.1);
+	scene.add(ambientlight);
+
+	//resize listner
+	window.addEventListener(
+		'resize',
+		() => {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			bloomComposer.setSize(window.innerWidth, window.innerHeight);
+		},
+		false,
+	);
+
+	//animation loop
+	const animate = () => {
 		requestAnimationFrame(animate);
-
-		cube.rotation.x += 0.01;
-		cube.rotation.y += 0.01;
-
-		renderer.render(scene, camera);
-	}
+		starMesh.rotation.y += 0.001;
+		camera.layers.set(1);
+		bloomComposer.render();
+	};
 
 	animate();
 }
