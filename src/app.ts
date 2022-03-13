@@ -1,94 +1,140 @@
-import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+/* eslint-disable */
+import 'babylonjs-loaders';
+import 'babylonjs/Oimo.js';
 
-export default function main(): void {
-	const canvas = document.getElementById('canvas');
+import * as BABYLON from 'babylonjs';
+import * as BGUI from 'babylonjs-gui';
 
-	const textureLoader = new THREE.TextureLoader();
+/* eslint-enable */
 
-	const scene = new THREE.Scene();
-	const fov = 60;
-	const aspect = window.innerWidth / window.innerHeight;
-	const near = 0.1;
-	const far = 1000;
+class App {
+	private engine: BABYLON.Engine;
+	private canvas: HTMLCanvasElement;
+	private scene: BABYLON.Scene;
+	private camera: BABYLON.ArcRotateCamera;
+	private light: BABYLON.Light;
 
-	//camera
-	const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-	camera.position.z = 8;
-	camera.position.x = 0;
-	scene.add(camera);
+	private spheres: BABYLON.AbstractMesh[];
 
-	//default renderer
-	const renderer = new THREE.WebGLRenderer({
-		canvas: canvas || undefined,
-		antialias: true,
-	});
-	renderer.autoClear = false;
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
-	renderer.setClearColor(0x000000, 0.0);
+	constructor(canvas: HTMLCanvasElement) {
+		this.engine = new BABYLON.Engine(canvas, true, {
+			preserveDrawingBuffer: true,
+			stencil: true,
+			disableWebGL2Support: false,
+		});
+		this.canvas = canvas;
 
-	//bloom renderer
-	const renderScene = new RenderPass(scene, camera);
-	const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-	bloomPass.threshold = 0;
-	bloomPass.strength = 2; //intensity of glow
-	bloomPass.radius = 0;
-	const bloomComposer = new EffectComposer(renderer);
-	bloomComposer.setSize(window.innerWidth, window.innerHeight);
-	bloomComposer.renderToScreen = true;
-	bloomComposer.addPass(renderScene);
-	bloomComposer.addPass(bloomPass);
+		this.scene = new BABYLON.Scene(this.engine);
+		this.scene.clearColor = new BABYLON.Color4(0, 0, 0);
 
-	//sun object
-	const color = new THREE.Color('#13B813');
-	const geometry = new THREE.IcosahedronGeometry(1, 15);
-	const material = new THREE.MeshBasicMaterial({ color: color });
-	const sphere = new THREE.Mesh(geometry, material);
-	sphere.position.set(0, 0, 0);
-	sphere.layers.set(1);
-	scene.add(sphere);
+		// This creates and positions a free camera (non-mesh)
+		this.camera = new BABYLON.ArcRotateCamera(
+			'Camera',
+			(3 * Math.PI) / 2,
+			Math.PI / 2.5,
+			8,
+			new BABYLON.Vector3(0, 2, 0),
+			this.scene,
+		);
 
-	// galaxy geometry
-	const starGeometry = new THREE.SphereGeometry(80, 64, 64);
+		this.camera.attachControl(canvas, true);
 
-	// galaxy material
-	const starMaterial = new THREE.MeshBasicMaterial({
-		map: textureLoader.load('texture/galaxy1.png'),
-		side: THREE.BackSide,
-		transparent: true,
-	});
+		this.camera.lowerRadiusLimit = 6;
+		this.camera.upperRadiusLimit = 20;
 
-	// galaxy mesh
-	const starMesh = new THREE.Mesh(starGeometry, starMaterial);
-	starMesh.layers.set(1);
-	scene.add(starMesh);
+		this.camera.useBouncingBehavior = true;
 
-	//ambient light
-	const ambientlight = new THREE.AmbientLight(0xffffff, 0.1);
-	scene.add(ambientlight);
+		// This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+		this.light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), this.scene);
 
-	//resize listner
-	window.addEventListener(
-		'resize',
-		() => {
-			camera.aspect = window.innerWidth / window.innerHeight;
-			camera.updateProjectionMatrix();
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			bloomComposer.setSize(window.innerWidth, window.innerHeight);
-		},
-		false,
-	);
+		this.light.intensity = 0.7;
 
-	//animation loop
-	const animate = () => {
-		requestAnimationFrame(animate);
-		starMesh.rotation.y += 0.001;
-		camera.layers.set(1);
-		bloomComposer.render();
-	};
+		const gravityVector = new BABYLON.Vector3(0, -3, 0);
+		this.scene.enablePhysics(gravityVector, new BABYLON.OimoJSPlugin());
 
-	animate();
+		this.spheres = [];
+
+		const gl = new BABYLON.GlowLayer('glow', this.scene, {
+			mainTextureSamples: 4,
+		});
+		gl.customEmissiveColorSelector = function (mesh, subMesh, material, result) {
+			if (mesh.name === 'sphere') {
+				result.set(0.960784314, 0.019607843, 0.309803922, 0.8);
+			} else if (mesh.name === 'heart') {
+				result.set(0.960784314, 0, 0.341176471, 1);
+			} else {
+				result.set(0, 0, 0, 0);
+			}
+		};
+
+		const advancedTexture = BGUI.AdvancedDynamicTexture.CreateFullscreenUI('UI', undefined, this.scene);
+		const textblock = new BGUI.TextBlock();
+		textblock.text = 'For Ueki Ai\nHappy Birthday!';
+		textblock.fontSize = 36;
+		textblock.left = window.innerWidth / 2 - 200;
+		textblock.top = window.innerHeight / 2 - 80;
+
+		textblock.color = 'white';
+		advancedTexture.addControl(textblock);
+
+		BABYLON.SceneLoader.ImportMeshAsync(['heart'], '/models/', 'heart.gltf', this.scene);
+
+		let ticker = 0;
+
+		this.scene.registerBeforeRender(() => {
+			if (ticker++ % 60) return;
+
+			for (let i = 0; i < 40; i++) {
+				setTimeout(() => {
+					const sphere = BABYLON.MeshBuilder.CreateSphere('sphere', { diameter: 0.1, segments: 32 }, this.scene);
+
+					const sphereMaterial = new BABYLON.StandardMaterial('sphereMaterial', this.scene);
+					sphereMaterial.alpha = 1;
+					sphereMaterial.diffuseColor = new BABYLON.Color3(0.960784314, 0.019607843, 0.309803922);
+					sphere.material = sphereMaterial;
+
+					// Move the sphere upward 1/2 its height
+					sphere.position.x = randomBetween(-20, 20);
+					sphere.position.y = randomBetween(12, 15);
+					sphere.position.z = randomBetween(-20, 20);
+
+					sphere.physicsImpostor = new BABYLON.PhysicsImpostor(
+						sphere,
+						BABYLON.PhysicsImpostor.SphereImpostor,
+						{ mass: 1, restitution: 0.2 },
+						this.scene,
+					);
+				}, randomBetween(0.2, 1) * 1000);
+			}
+		});
+
+		this.scene.registerBeforeRender(() => {
+			this.scene.meshes.forEach(function (mesh) {
+				if (mesh.name == 'sphere' && mesh.position.y < -100) {
+					mesh.dispose();
+				}
+			});
+		});
+	}
+
+	public run() {
+		this.engine.runRenderLoop(() => {
+			this.scene.render();
+		});
+
+		window.addEventListener('resize', () => {
+			this.engine.resize();
+		});
+	}
+}
+
+export default function run() {
+	const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+
+	const app = new App(canvas);
+	app.run();
+}
+
+function randomBetween(min: number, max: number): number {
+	return Math.random() * (max - min) + min;
 }
