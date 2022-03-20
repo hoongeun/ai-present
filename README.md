@@ -1,46 +1,41 @@
-# Getting Started with Create React App
+# AI Present
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is a 2022 birthday gift for friend who live in across the sea.
 
-## Available Scripts
+## Preview & Demo
 
-In the project directory, you can run:
+![preview](/docs/img/preview.gif)
 
-### `npm start`
+[DEMO](http://hoongeun.com/)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Dev
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+```bash
+yarn
+yarn start
+```
 
-### `npm test`
+## Prod(deploy to infra)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+## build
+yarn
+yarn start
+##
 
-### `npm run build`
+## setup infra
+cd ./terraform
+# Change s3 bucket name and domain in providers.tf and terraform.tfvars
+terraform init
+terraform apply # After applying the infra you may recieved from aws to check the domains
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## deploy
+## Change s3 bucket name of package.json
+yarn deploy
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Stack
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+* CRA(create-react-app)
+* typescript
+* babylon.js

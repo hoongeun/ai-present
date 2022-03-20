@@ -9,12 +9,9 @@ import * as BGUI from 'babylonjs-gui';
 
 class App {
 	private engine: BABYLON.Engine;
-	private canvas: HTMLCanvasElement;
 	private scene: BABYLON.Scene;
 	private camera: BABYLON.ArcRotateCamera;
 	private light: BABYLON.Light;
-
-	private spheres: BABYLON.AbstractMesh[];
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.engine = new BABYLON.Engine(canvas, true, {
@@ -22,7 +19,6 @@ class App {
 			stencil: true,
 			disableWebGL2Support: false,
 		});
-		this.canvas = canvas;
 
 		this.scene = new BABYLON.Scene(this.engine);
 		this.scene.clearColor = new BABYLON.Color4(0, 0, 0);
@@ -52,8 +48,6 @@ class App {
 		const gravityVector = new BABYLON.Vector3(0, -3, 0);
 		this.scene.enablePhysics(gravityVector, new BABYLON.OimoJSPlugin());
 
-		this.spheres = [];
-
 		const gl = new BABYLON.GlowLayer('glow', this.scene, {
 			mainTextureSamples: 4,
 		});
@@ -69,11 +63,10 @@ class App {
 
 		const advancedTexture = BGUI.AdvancedDynamicTexture.CreateFullscreenUI('UI', undefined, this.scene);
 		const textblock = new BGUI.TextBlock();
-		textblock.text = 'For Ueki Ai\nHappy Birthday!';
+		textblock.text = 'Happy Birthday!';
 		textblock.fontSize = 36;
 		textblock.left = window.innerWidth / 2 - 200;
 		textblock.top = window.innerHeight / 2 - 80;
-
 		textblock.color = 'white';
 		advancedTexture.addControl(textblock);
 
